@@ -1,0 +1,10 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:12.000
+En Kubernetes un Deployment declara cuántas réplicas de un pod queremos y el controlador se encarga de mantenerlas.
+
+00:00:12.000 --> 00:00:25.000
+Si borramos un pod a mano, el ReplicaSet crea otro para volver al estado deseado.
+
+00:00:25.000 --> 00:00:40.000
+Para el examen es importante distinguir entre Deployment, StatefulSet y DaemonSet.

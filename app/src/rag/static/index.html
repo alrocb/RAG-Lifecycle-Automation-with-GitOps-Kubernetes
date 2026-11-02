@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Asistente del máster</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --text: #1d1d1b; --muted: #6b6b66;
+    --border: #e3e3de; --accent: #0b6bcb; --user: #e8f0fa; --error: #b42318;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161615; --surface: #1f1f1d; --text: #ececea; --muted: #9a9a94;
+      --border: #33332f; --accent: #5aa3f0; --user: #1f2d3d; --error: #f97066;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column; height: 100dvh;
+  }
+  header {
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface);
+  }
+  header h1 { font-size: 16px; margin: 0; flex: 1; }
+  select, button, textarea {
+    font: inherit; color: inherit; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px;
+  }
+  select, button { padding: 6px 10px; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  main { flex: 1; overflow-y: auto; padding: 16px; }
+  .thread { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+  .empty { color: var(--muted); text-align: center; margin-top: 15vh; }
+  .msg { padding: 12px 14px; border-radius: 12px; white-space: pre-wrap; word-wrap: break-word; }
+  .msg.user { background: var(--user); align-self: flex-end; max-width: 85%; }
+  .msg.assistant { background: var(--surface); border: 1px solid var(--border); }
+  .msg.error { color: var(--error); }
+  .cite { color: var(--accent); font-weight: 600; font-size: .8em; vertical-align: super; }
+  .sources { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border);
+             font-size: 13px; color: var(--muted); white-space: normal; }
+  .sources ol { margin: 4px 0 0; padding-left: 22px; }
+  .typing::after { content: "▍"; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  form { border-top: 1px solid var(--border); background: var(--surface); padding: 12px 16px; }
+  .composer { max-width: 760px; margin: 0 auto; display: flex; gap: 8px; }
+  textarea { flex: 1; resize: none; padding: 10px 12px; min-height: 44px; max-height: 160px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Asistente del máster</h1>
+  <select id="subject" aria-label="Asignatura"><option value="">Todas las asignaturas</option></select>
+  <button id="reset" type="button">Nueva conversación</button>
+</header>
+<main><div class="thread" id="thread">
+  <p class="empty" id="empty">Pregunta sobre el temario, las actividades o lo que se explicó en clase.</p>
+</div></main>
+<form id="form">
+  <div class="composer">
+    <textarea id="question" rows="1" placeholder="Escribe tu pregunta…" required></textarea>
+    <button class="primary" id="send">Enviar</button>
+  </div>
+</form>
+<script>
+const $ = (id) => document.getElementById(id);
+let conversation = [];
+
+function apiKey(reset = false) {
+  let key = null;
+  try { key = reset ? null : localStorage.getItem("apiKey"); } catch {}
+  if (!key) {
+    key = prompt("API key del asistente") || "";
+    try { localStorage.setItem("apiKey", key); } catch {}
+  }
+  return key;
+}
+
+async function api(path, options = {}, retry = true) {
+  const response = await fetch(path, {
+    ...options,
+    headers: { "Content-Type": "application/json", "X-API-Key": apiKey(), ...options.headers },
+  });
+  if (response.status === 401 && retry) {
+    apiKey(true);
+    return api(path, options, false);
+  }
+  if (!response.ok) throw new Error(`Error ${response.status}`);
+  return response;
+}
+
+function escapeHtml(text) {
+  return text.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+function render(text) {
+  return escapeHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\[(\d+)\]/g, '<span class="cite">[$1]</span>');
+}
+
+function addMessage(role, text = "") {
+  $("empty")?.remove();
+  const div = document.createElement("div");
+  div.className = `msg ${role}`;
+  div.textContent = text;
+  $("thread").append(div);
+  div.scrollIntoView({ block: "end" });
+  return div;
+}
+
+function renderSources(div, sources) {
+  if (!sources.length) return;
+  const items = sources.map((s) => {
+    const where = s.material_type === "vtt" ? `min ${s.location}` : s.location;
+    return `<li>${escapeHtml(s.subject)} · ${escapeHtml(s.source)} · ${escapeHtml(where)}</li>`;
+  });
+  div.insertAdjacentHTML("beforeend", `<div class="sources">Fuentes<ol>${items.join("")}</ol></div>`);
+}
+
+async function ask(question) {
+  addMessage("user", question);
+  const div = addMessage("assistant");
+  div.classList.add("typing");
+  const body = document.createElement("div");
+  div.append(body);
+  let answer = "", sources = [];
+
+  try {
+    const response = await api("/ask/stream", {
+      method: "POST",
+      body: JSON.stringify({ question, subject: $("subject").value || null, history: conversation }),
+    });
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      const lines = buffer.split("\n");
+      buffer = lines.pop();
+      for (const line of lines.filter(Boolean)) {
+        const event = JSON.parse(line);
+        if (event.type === "sources") sources = event.sources;
+        if (event.type === "token") { answer += event.text; body.innerHTML = render(answer); }
+        if (event.type === "error") throw new Error(event.detail);
+      }
+      div.scrollIntoView({ block: "end" });
+    }
+    renderSources(div, sources);
+    conversation.push({ role: "user", content: question }, { role: "assistant", content: answer });
+  } catch (error) {
+    div.classList.add("error");
+    body.textContent = `No se ha podido responder: ${error.message}`;
+  } finally {
+    div.classList.remove("typing");
+  }
+}
+
+$("form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const question = $("question").value.trim();
+  if (!question) return;
+  $("question").value = "";
+  $("send").disabled = true;
+  await ask(question);
+  $("send").disabled = false;
+  $("question").focus();
+});
+
+$("question").addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    $("form").requestSubmit();
+  }
+});
+
+$("reset").addEventListener("click", () => {
+  conversation = [];
+  $("thread").innerHTML = '<p class="empty" id="empty">Nueva conversación.</p>';
+});
+
+api("/subjects")
+  .then((r) => r.json())
+  .then((subjects) => subjects.forEach((s) => $("subject").add(new Option(s, s))))
+  .catch(() => {});
+</script>
+</body>
+</html>

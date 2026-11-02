@@ -1,0 +1,33 @@
+[project]
+name = "rag"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic-settings>=2.4",
+    "qdrant-client>=1.20,<1.21",  # misma versión menor que el servidor
+    "fastembed>=0.4",
+    "openai>=1.40",
+    "prometheus-client>=0.20",
+    "pypdf>=5.0",
+    "python-pptx>=1.0",
+    "spacy>=3.8,<3.9",
+    "es_core_news_md @ https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.8.0/es_core_news_md-3.8.0-py3-none-any.whl",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.6"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+rag = ["static/*", "ingest/*.txt"]
+
+[tool.ruff]
+line-length = 100

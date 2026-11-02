@@ -1,0 +1,38 @@
+# Entorno de desarrollo local. En el clúster esto lo sustituyen los charts de Helm.
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.20.0
+    ports: ["6333:6333"]
+    volumes: [qdrant-data:/qdrant/storage]
+
+  mock-llm:
+    build: ./mock-llm
+    image: rag-mock-llm:dev
+    ports: ["8001:8001"]
+
+  api:
+    build: ./app
+    image: rag-app:dev
+    ports: ["8000:8000"]
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      # Por defecto el mock; para un LLM real, definirlas en .env (ver .env.example).
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://mock-llm:8001/v1}
+      LLM_MODEL: ${LLM_MODEL:-mock}
+      LLM_API_KEY: ${LLM_API_KEY:-not-needed}
+      API_KEY: ${API_KEY:-dev-key}
+    depends_on: [qdrant, mock-llm]
+
+  # docker compose run --rm ingest
+  ingest:
+    image: rag-app:dev
+    command: ["python", "-m", "rag.ingest", "--data-dir", "/data"]
+    environment:
+      QDRANT_URL: http://qdrant:6333
+    volumes:
+      - ${DATA_DIR:-./app/tests/fixtures/data}:/data:ro
+    depends_on: [qdrant]
+    profiles: [tools]
+
+volumes:
+  qdrant-data:

@@ -1,0 +1,17 @@
+WEBVTT
+
+1
+00:00:01.000 --> 00:00:08.000
+<v Ana Pérez>Bienvenidos a la primera sesión de la asignatura.</v>
+
+2
+00:00:08.000 --> 00:00:20.000
+<v Ana Pérez>Hoy vamos a ver qué es la integración continua y por qué cada commit debe compilarse y probarse automáticamente.</v>
+
+3
+00:01:05.000 --> 00:01:20.000
+<v Ana Pérez>La actividad 1 se entrega el 15 de noviembre y consiste en montar un pipeline con pruebas unitarias.</v>
+
+4
+00:01:20.000 --> 00:01:35.000
+Como comentó Luis en el foro, se puede usar cualquier plataforma de CI.
