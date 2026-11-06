@@ -23,7 +23,8 @@ class Settings(BaseSettings):
 
     # Si está vacía no se exige clave (solo para desarrollo local).
     api_key: str = ""
-    candidates: int = 20  # fragmentos que pasan de la búsqueda híbrida al reranker
+    candidates: int = 10  # fragmentos que pasan de la búsqueda híbrida al reranker
+    rerank_max_chars: int = 400  # texto de cada candidato que ve el reranker
     top_k: int = 5  # fragmentos que llegan al LLM
     max_history: int = 6  # mensajes previos de la conversación que se envían al LLM
 

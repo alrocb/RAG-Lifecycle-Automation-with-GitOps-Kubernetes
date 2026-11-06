@@ -1,0 +1,4 @@
+#!/bin/bash
+# Se ejecuta una vez, en el primer arranque de la máquina (user data).
+set -euo pipefail
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="${k3s_version}" sh -s - server --write-kubeconfig-mode 600

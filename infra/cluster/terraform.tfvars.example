@@ -1,0 +1,10 @@
+# Copiar a terraform.tfvars (no se versiona) y dejar solo el bloque de la cuenta que se use.
+
+# --- AWS Academy Learner Lab ---
+region                = "us-east-1"
+instance_profile_name = "LabInstanceProfile"
+
+# --- Cuenta propia ---
+# region             = "eu-west-1"
+# budget_email       = "tu-correo@ejemplo.com"
+# monthly_budget_usd = 50

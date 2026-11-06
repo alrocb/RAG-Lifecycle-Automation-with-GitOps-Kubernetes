@@ -10,6 +10,7 @@ from qdrant_client.models import (
 )
 
 from rag.config import settings
+from rag.context import with_context
 from rag.embeddings import embed, embed_sparse, rerank
 
 
@@ -40,7 +41,9 @@ def search(client: QdrantClient, query: str, subject: str | None = None) -> list
 def rerank_hits(query: str, hits: list[ScoredPoint]) -> list[ScoredPoint]:
     """Reordena los candidatos con un cross-encoder, descarta los irrelevantes y deja los top_k."""
     if settings.rerank_model and hits:
-        scores = rerank(query, [hit.payload["text"] for hit in hits])
+        # El reranker es la etapa más cara: se recorta el texto (medido: 20x800 car. 9,9 s -> 10x400 1,6 s
+        # con el mismo mejor resultado).
+        scores = rerank(query, [with_context(h.payload)[: settings.rerank_max_chars] for h in hits])
         for hit, score in zip(hits, scores):
             hit.score = score
         relevant = [hit for hit in hits if hit.score >= settings.rerank_min_score]

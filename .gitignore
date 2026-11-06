@@ -10,3 +10,13 @@ __pycache__/
 
 # Local
 .env
+
+# Terraform (el .terraform.lock.hcl sí se versiona)
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+*.tfplan
+
+# Credenciales locales: nunca al repositorio
+.aws/

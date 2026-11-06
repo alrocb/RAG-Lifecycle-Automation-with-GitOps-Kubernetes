@@ -1,6 +1,8 @@
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from docx import Document
 from pptx import Presentation
 from pypdf import PdfReader
 
@@ -8,7 +10,14 @@ from pypdf import PdfReader
 @dataclass
 class Section:
     text: str
-    location: str  # minuto, página o diapositiva; se usa para citar
+    location: str  # minuto, página, diapositiva o apartado; se usa para citar
+
+
+# Teams/Zoom ponen quién habla al principio de cada línea: "IVAN SANZ PRIETO: Muy bien..."
+# Son datos personales y no aportan al contenido. Se exigen 2-6 palabras en mayúscula inicial
+# para no confundirlo con "Por ejemplo: ..." o "Nota: ...".
+_UPPER = "A-ZÁÉÍÓÚÑÜÀÈÌÒÙÇ"
+SPEAKER = re.compile(rf"^(?:[{_UPPER}][\w'.-]*\s){{1,5}}[{_UPPER}][\w'.-]*:\s*")
 
 
 def _seconds(timestamp: str) -> float:
@@ -28,7 +37,8 @@ def parse_vtt(path: Path, window: int = 60) -> list[Section]:
         begin = lines[timing].split("-->")[0].strip()
         if start is None:
             start = begin
-        texts.append(" ".join(lines[timing + 1 :]))
+        # Por línea: en un mismo bloque pueden hablar dos personas.
+        texts.append(" ".join(SPEAKER.sub("", line) for line in lines[timing + 1 :]))
         if _seconds(begin) - _seconds(start) >= window:
             sections.append(Section(" ".join(texts), start.split(".")[0]))
             texts, start = [], None
@@ -52,4 +62,24 @@ def parse_pptx(path: Path) -> list[Section]:
     return sections
 
 
-PARSERS = {".vtt": parse_vtt, ".pdf": parse_pdf, ".pptx": parse_pptx}
+def parse_docx(path: Path) -> list[Section]:
+    """Agrupa los párrafos bajo su título; el título sirve de ubicación para citar."""
+    document = Document(path)
+    sections, heading, texts = [], "inicio", []
+    for paragraph in document.paragraphs:
+        style = paragraph.style.name.lower() if paragraph.style is not None else ""
+        if style.startswith(("heading", "título", "title")) and paragraph.text.strip():
+            if texts:
+                sections.append(Section("\n".join(texts), heading))
+            heading, texts = paragraph.text.strip(), []
+        texts.append(paragraph.text)
+    if texts:
+        sections.append(Section("\n".join(texts), heading))
+    # Las rúbricas y criterios de las actividades suelen estar en tablas.
+    for i, table in enumerate(document.tables, start=1):
+        rows = [" | ".join(cell.text.strip() for cell in row.cells) for row in table.rows]
+        sections.append(Section("\n".join(rows), f"tabla {i}"))
+    return sections
+
+
+PARSERS = {".vtt": parse_vtt, ".pdf": parse_pdf, ".pptx": parse_pptx, ".docx": parse_docx}

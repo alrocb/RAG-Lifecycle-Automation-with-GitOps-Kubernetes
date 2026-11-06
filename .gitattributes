@@ -1,0 +1,3 @@
+# Los scripts que se ejecutan en Linux deben tener saltos de línea LF
+*.sh text eol=lf
+*.tftpl text eol=lf

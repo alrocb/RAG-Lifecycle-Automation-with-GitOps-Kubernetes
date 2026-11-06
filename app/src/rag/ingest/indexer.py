@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -15,22 +16,31 @@ from qdrant_client.models import (
     VectorParams,
 )
 
+from rag.context import with_context
 from rag.embeddings import embed, embed_sparse
 from rag.ingest.anonymize import anonymize
 from rag.ingest.chunking import split
 from rag.ingest.parsers import PARSERS
 
+log = logging.getLogger("rag.ingest")
 
 def load_documents(data_dir: Path, names: list[str]) -> list[dict]:
     """Lee data/<asignatura>/<fichero> y devuelve los fragmentos con sus metadatos."""
     payloads = []
-    for path in sorted(data_dir.rglob("*")):
+    for path in sorted(p for p in data_dir.rglob("*") if p.is_file()):
         parser = PARSERS.get(path.suffix.lower())
         if parser is None:
+            log.info("Formato no soportado, se omite: %s", path.name)
+            continue
+        try:
+            sections = parser(path)
+        except Exception:
+            # Un fichero dañado no debe impedir reindexar el resto.
+            log.exception("No se ha podido leer %s", path.name)
             continue
         parts = path.relative_to(data_dir).parts
         subject = parts[0] if len(parts) > 1 else "general"
-        for section in parser(path):
+        for section in sections:
             for chunk in split(anonymize(section.text, names)):
                 payloads.append({
                     "text": chunk,
@@ -58,7 +68,7 @@ def reindex(client: QdrantClient, payloads: list[dict], alias: str) -> str:
         raise ValueError("No hay documentos que indexar")
 
     name = f"{alias}_{datetime.now(UTC):%Y%m%d%H%M%S%f}"
-    texts = [p["text"] for p in payloads]
+    texts = [with_context(p) for p in payloads]
     dense, sparse = embed(texts), embed_sparse(texts)
     client.create_collection(
         name,

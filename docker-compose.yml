@@ -34,5 +34,20 @@ services:
     depends_on: [qdrant]
     profiles: [tools]
 
+  # docker compose run --rm convert-ppt
+  # Paso previo, una vez: convierte las presentaciones antiguas (.ppt) a PDF con LibreOffice,
+  # porque la ingesta solo lee .pptx y .pdf. Los PDF quedan junto a los .ppt originales.
+  convert-ppt:
+    image: debian:trixie-slim
+    volumes:
+      - ${DATA_DIR:-./data}:/data
+    command:
+      - sh
+      - -c
+      - |
+        apt-get update -qq && apt-get install -y -qq --no-install-recommends libreoffice-impress >/dev/null
+        find /data -name '*.ppt' -execdir soffice --headless --convert-to pdf {} \;
+    profiles: [tools]
+
 volumes:
   qdrant-data:

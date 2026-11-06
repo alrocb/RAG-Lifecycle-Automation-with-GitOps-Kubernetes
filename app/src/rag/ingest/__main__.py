@@ -12,6 +12,7 @@ from rag.ingest.indexer import load_documents, reindex
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("rag.ingest")
+logging.getLogger("pypdf").setLevel(logging.ERROR)  # avisos de PDFs mal formados que sí se leen
 
 
 def main() -> None:
