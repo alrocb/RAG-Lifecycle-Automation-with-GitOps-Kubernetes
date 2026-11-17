@@ -20,6 +20,28 @@ variable "k3s_version" {
   default     = "v1.36.5+k3s1"
 }
 
+variable "argocd_chart_version" {
+  type    = string
+  default = "10.11.6"
+}
+
+variable "repo_url" {
+  description = "Repositorio que Argo CD sincroniza (gitops/apps)"
+  type        = string
+  default     = "https://github.com/alrocb/RAG-Lifecycle-Automation-with-GitOps-Kubernetes.git"
+}
+
+variable "git_revision" {
+  type    = string
+  default = "main"
+}
+
+variable "sealed_secrets_param" {
+  description = "Prefijo en SSM Parameter Store de la clave de Sealed Secrets (tls.key y tls.crt), subida con infra/sealed-secrets-key.sh"
+  type        = string
+  default     = "/rag-tfm/sealed-secrets"
+}
+
 variable "monthly_budget_usd" {
   description = "Límite mensual de gasto en la cuenta; avisa por correo al 80 % previsto y al 100 % real"
   type        = number

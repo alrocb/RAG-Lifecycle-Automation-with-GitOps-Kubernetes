@@ -6,7 +6,11 @@ output "public_ip" {
   value = aws_eip.node.public_ip
 }
 
-# sslip.io resuelve <ip-con-guiones>.sslip.io a esa IP: DNS sin registrar dominio.
+# Va en gitops/rag/values.yaml (host) si cambia la IP.
 output "app_host" {
-  value = "rag.${replace(aws_eip.node.public_ip, ".", "-")}.sslip.io"
+  value = "rag.${local.ip_dashes}.sslip.io"
+}
+
+output "argocd_host" {
+  value = "argocd.${local.ip_dashes}.sslip.io"
 }

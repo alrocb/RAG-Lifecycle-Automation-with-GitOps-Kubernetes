@@ -1,0 +1,39 @@
+# La aplicación RAG: chart de charts/rag con los valores del entorno y sus secretos cifrados.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rag
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/alrocb/RAG-Lifecycle-Automation-with-GitOps-Kubernetes.git
+      targetRevision: main
+      path: charts/rag
+      helm:
+        valueFiles:
+          - $repo/gitops/rag/values.yaml
+    # Solo para que $repo apunte a este repositorio en valueFiles.
+    - repoURL: https://github.com/alrocb/RAG-Lifecycle-Automation-with-GitOps-Kubernetes.git
+      targetRevision: main
+      ref: repo
+    - repoURL: https://github.com/alrocb/RAG-Lifecycle-Automation-with-GitOps-Kubernetes.git
+      targetRevision: main
+      path: gitops/rag/secrets
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: rag
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 30s
+        maxDuration: 5m

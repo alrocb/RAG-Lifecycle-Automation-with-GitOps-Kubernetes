@@ -1,0 +1,6 @@
+apiVersion: v2
+name: rag
+description: Asistente RAG sobre los materiales del máster (API, Qdrant y LLM simulado)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

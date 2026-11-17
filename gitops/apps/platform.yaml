@@ -1,0 +1,28 @@
+# Configuración del clúster que depende de las piezas anteriores (emisores de certificados).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/alrocb/RAG-Lifecycle-Automation-with-GitOps-Kubernetes.git
+    targetRevision: main
+    path: gitops/platform
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    # Los CRD de cert-manager pueden no existir aún en la primera sincronización: se reintenta.
+    syncOptions:
+      - SkipDryRunOnMissingResource=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 30s
+        maxDuration: 5m

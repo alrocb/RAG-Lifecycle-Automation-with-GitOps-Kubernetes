@@ -1,0 +1,8 @@
+# Valores del entorno desplegado (sobrescriben charts/rag/values.yaml).
+
+# Cambia si se recrea la IP fija: rag.<ip con guiones>.sslip.io (salida app_host de Terraform).
+host: rag.13-223-128-114.sslip.io
+
+images:
+  # Lo actualiza el CI tras publicar las imágenes de cada commit.
+  tag: latest

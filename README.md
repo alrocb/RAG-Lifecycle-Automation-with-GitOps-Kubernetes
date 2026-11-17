@@ -8,6 +8,9 @@ An end-to-end DevOps project focused on automating the deployment, operation, an
 | `app/` | API RAG (FastAPI) e ingesta. Una sola imagen: `uvicorn rag.api:app` o `python -m rag.ingest` |
 | `mock-llm/` | LLM simulado compatible con la API de OpenAI, para pruebas sin coste |
 | `docker-compose.yml` | Entorno local: Qdrant + mock-llm + API |
+| `charts/rag/` | Chart de Helm de la aplicación: API, Qdrant, mock-llm e Ingress con TLS |
+| `gitops/` | Lo que Argo CD sincroniza: aplicaciones (`apps/`), emisores de certificados (`platform/`), valores y secretos cifrados del entorno (`rag/`) |
+| `infra/sealed-secrets-key.sh` | Sube la clave de Sealed Secrets a SSM Parameter Store (una vez por cuenta) |
 | `infra/bootstrap.sh` | Crea el bucket S3 del estado de Terraform (una vez) |
 | `infra/cluster/` | Terraform: VPC, máquina EC2 con k3s, IP fija, acceso por SSM y alerta de presupuesto |
 
@@ -87,6 +90,27 @@ KUBECONFIG=~/.kube/rag-tfm.yaml kubectl get nodes
 ```
 
 Coste: unos 0,10 $/h con la máquina encendida (t3.large + disco + IP). Para ahorrar, `aws ec2 stop-instances --instance-ids $ID` (la IP fija se mantiene). Todo se destruye con `terraform -chdir=infra/cluster destroy`.
+
+## Despliegue GitOps
+
+`terraform apply` deja el clúster listo para GitOps sin pasos manuales: el arranque de la máquina instala k3s, carga la clave de Sealed Secrets desde SSM Parameter Store, instala Argo CD y le pasa la aplicación raíz (`gitops/apps`). Desde ahí Argo CD despliega cert-manager, Sealed Secrets, los emisores de Let's Encrypt y la aplicación.
+
+Flujo de un cambio: push a `main` → el CI prueba, publica `ghcr.io/alrocb/rag-app` y `rag-mock-llm` con el SHA del commit y escribe esa etiqueta en `gitops/rag/values.yaml` → Argo CD lo detecta y despliega.
+
+Pasos de una sola vez:
+
+```bash
+infra/sealed-secrets-key.sh us-east-1      # sube la clave privada de .secrets/ a SSM
+# En GitHub → Packages: poner rag-app y rag-mock-llm como públicos (el clúster las descarga sin credenciales)
+```
+
+Secretos: se cifran con el certificado público del repositorio, sin acceso al clúster:
+
+```bash
+kubectl create secret generic rag-secrets -n rag --from-literal=API_KEY=... --from-literal=LLM_API_KEY=...   --dry-run=client -o yaml | kubeseal --cert gitops/sealed-secrets-cert.pem --format yaml > gitops/rag/secrets/rag-secrets.yaml
+```
+
+Si cambia la IP fija, actualizar `host` en `gitops/rag/values.yaml` con la salida `app_host` de Terraform. Argo CD queda en la salida `argocd_host` (usuario `admin`; contraseña en el secreto `argocd-initial-admin-secret`).
 
 ## Tests
 

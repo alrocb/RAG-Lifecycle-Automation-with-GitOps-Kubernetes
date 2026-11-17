@@ -1,0 +1,30 @@
+{{- if .Values.host }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rag
+  {{- if .Values.tls.enabled }}
+  annotations:
+    # cert-manager pide el certificado a Let's Encrypt y lo renueva solo.
+    cert-manager.io/cluster-issuer: {{ .Values.tls.clusterIssuer }}
+  {{- end }}
+spec:
+  ingressClassName: traefik
+  {{- if .Values.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.host }}
+      secretName: rag-tls
+  {{- end }}
+  rules:
+    - host: {{ .Values.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: rag-api
+                port:
+                  name: http
+{{- end }}

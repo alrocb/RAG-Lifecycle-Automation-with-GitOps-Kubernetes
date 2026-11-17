@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rag-qdrant
+  labels:
+    app: rag-qdrant
+spec:
+  serviceName: rag-qdrant
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rag-qdrant
+  template:
+    metadata:
+      labels:
+        app: rag-qdrant
+    spec:
+      containers:
+        - name: qdrant
+          image: {{ .Values.qdrant.image }}
+          ports:
+            - name: http
+              containerPort: 6333
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 10
+          volumeMounts:
+            - name: storage
+              mountPath: /qdrant/storage
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+  # El índice sobrevive a reinicios del pod (volumen local de k3s).
+  volumeClaimTemplates:
+    - metadata:
+        name: storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.qdrant.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-qdrant
+  labels:
+    app: rag-qdrant
+spec:
+  selector:
+    app: rag-qdrant
+  ports:
+    - name: http
+      port: 6333
+      targetPort: http

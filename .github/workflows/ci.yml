@@ -1,10 +1,14 @@
-# Fase 2: lint y tests. La construcción y publicación de imágenes se añade en la Fase 4.
+# Integración continua: pruebas y validaciones en cada push y pull request; en main, además,
+# publica las imágenes en GHCR y escribe su etiqueta en gitops/rag/values.yaml.
+# Argo CD detecta ese commit y despliega la versión nueva (la entrega la hace GitOps, no el CI).
 name: ci
 
 on:
   push:
     branches: [main]
   pull_request:
+  # Publicar las imágenes a mano (p. ej. la primera vez), aunque no haya cambios en el código.
+  workflow_dispatch:
 
 jobs:
   test:
@@ -31,3 +35,73 @@ jobs:
       - run: terraform fmt -check -recursive infra
       - run: terraform -chdir=infra/cluster init -backend=false -input=false
       - run: terraform -chdir=infra/cluster validate
+
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.22.1
+      - run: helm lint charts/rag -f gitops/rag/values.yaml
+      - run: helm template rag charts/rag -f gitops/rag/values.yaml > /dev/null
+
+  # Solo se publican imágenes nuevas si cambia el código de las aplicaciones.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            app:
+              - 'app/**'
+              - 'mock-llm/**'
+              - '.github/workflows/ci.yml'
+
+  images:
+    needs: [test, helm, changes]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'push' && needs.changes.outputs.app == 'true'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: app
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/rag-app:${{ github.sha }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=rag-app
+          cache-to: type=gha,mode=max,scope=rag-app
+      - uses: docker/build-push-action@v6
+        with:
+          context: mock-llm
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/rag-mock-llm:${{ github.sha }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=rag-mock-llm
+          cache-to: type=gha,mode=max,scope=rag-mock-llm
+      # El commit hecho con GITHUB_TOKEN no vuelve a lanzar el CI.
+      - name: Actualizar la etiqueta desplegada
+        run: |
+          sed -i "s/^  tag: .*/  tag: ${GITHUB_SHA}/" gitops/rag/values.yaml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "deploy: imágenes ${GITHUB_SHA::7}"
+          git pull --rebase origin main
+          git push origin HEAD:main

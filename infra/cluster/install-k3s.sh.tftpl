@@ -1,4 +1,78 @@
 #!/bin/bash
 # Se ejecuta una vez, en el primer arranque de la máquina (user data).
+# Deja el clúster listo para GitOps: k3s, la clave de Sealed Secrets y Argo CD apuntando al repositorio.
+# A partir de ahí, todo lo demás lo despliega Argo CD desde gitops/apps.
 set -euo pipefail
+
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="${k3s_version}" sh -s - server --write-kubeconfig-mode 600
+until k3s kubectl get nodes >/dev/null 2>&1; do sleep 5; done
+
+# 1. Clave de Sealed Secrets desde SSM Parameter Store, antes de que arranque su controlador:
+#    así los secretos cifrados del repositorio siguen siendo válidos aunque se recree el clúster.
+snap install aws-cli --classic
+param() { /snap/bin/aws ssm get-parameter --region "${region}" --with-decryption \
+  --name "${sealed_secrets_param}/$1" --query Parameter.Value --output text; }
+if param tls.key > /root/tls.key && param tls.crt > /root/tls.crt; then
+  k3s kubectl -n kube-system create secret tls sealed-secrets-key --cert=/root/tls.crt --key=/root/tls.key
+  k3s kubectl -n kube-system label secret sealed-secrets-key sealedsecrets.bitnami.com/sealed-secrets-key=active
+else
+  echo "Sin clave en SSM: Sealed Secrets generará una nueva y habrá que volver a cifrar los secretos" >&2
+fi
+rm -f /root/tls.key /root/tls.crt
+
+# 2. Argo CD, instalado con el controlador de Helm que trae k3s.
+cat > /var/lib/rancher/k3s/server/manifests/argocd.yaml <<'EOF'
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: argocd
+  namespace: kube-system
+spec:
+  repo: https://argoproj.github.io/argo-helm
+  chart: argo-cd
+  version: ${argocd_chart_version}
+  targetNamespace: argocd
+  createNamespace: true
+  valuesContent: |-
+    global:
+      domain: ${argocd_host}
+    configs:
+      params:
+        server.insecure: true
+    server:
+      ingress:
+        enabled: true
+        ingressClassName: traefik
+        annotations:
+          cert-manager.io/cluster-issuer: letsencrypt
+        tls: true
+    dex:
+      enabled: false
+    notifications:
+      enabled: false
+    applicationSet:
+      enabled: false
+EOF
+
+# 3. Aplicación raíz (app of apps): Argo CD sincroniza a partir de aquí todo gitops/apps.
+until k3s kubectl get crd applications.argoproj.io >/dev/null 2>&1; do sleep 5; done
+k3s kubectl apply -f - <<'EOF'
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: ${repo_url}
+    targetRevision: ${git_revision}
+    path: gitops/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+EOF

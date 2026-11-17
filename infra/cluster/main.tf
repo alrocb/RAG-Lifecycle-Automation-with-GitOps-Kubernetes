@@ -94,6 +94,8 @@ resource "aws_iam_instance_profile" "node" {
 
 locals {
   instance_profile = var.instance_profile_name != null ? var.instance_profile_name : aws_iam_instance_profile.node[0].name
+  # sslip.io resuelve <ip-con-guiones>.sslip.io a esa IP: DNS sin registrar dominio.
+  ip_dashes = replace(aws_eip.node.public_ip, ".", "-")
 }
 
 # --- Máquina virtual con k3s --------------------------------------------------
@@ -114,7 +116,15 @@ resource "aws_instance" "node" {
   vpc_security_group_ids = [aws_security_group.node.id]
   iam_instance_profile   = local.instance_profile
 
-  user_data                   = templatefile("${path.module}/install-k3s.sh.tftpl", { k3s_version = var.k3s_version })
+  user_data = templatefile("${path.module}/install-k3s.sh.tftpl", {
+    k3s_version          = var.k3s_version
+    region               = var.region
+    sealed_secrets_param = var.sealed_secrets_param
+    argocd_chart_version = var.argocd_chart_version
+    argocd_host          = "argocd.${local.ip_dashes}.sslip.io"
+    repo_url             = var.repo_url
+    git_revision         = var.git_revision
+  })
   user_data_replace_on_change = true
 
   metadata_options {

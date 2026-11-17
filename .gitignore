@@ -20,3 +20,6 @@ terraform.tfvars
 
 # Credenciales locales: nunca al repositorio
 .aws/
+
+# Claves privadas locales (clave de Sealed Secrets, API key en claro)
+/.secrets/

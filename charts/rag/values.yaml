@@ -1,0 +1,35 @@
+# Valores por defecto. Los del entorno desplegado están en gitops/rag/values.yaml.
+
+# Nombre público, p. ej. rag.13-223-128-114.sslip.io. Vacío = sin Ingress.
+host: ""
+tls:
+  enabled: true
+  clusterIssuer: letsencrypt
+
+images:
+  app: ghcr.io/alrocb/rag-app
+  mockLlm: ghcr.io/alrocb/rag-mock-llm
+  # El CI escribe aquí el SHA del commit en gitops/rag/values.yaml.
+  tag: latest
+
+qdrant:
+  image: qdrant/qdrant:v1.20.0
+  storage: 5Gi
+
+# Secreto con las claves API_KEY y LLM_API_KEY (un SealedSecret en gitops/rag/secrets/).
+secretName: rag-secrets
+
+llm:
+  # Con un proveedor real: su URL y su modelo, y mock: false.
+  baseUrl: http://rag-mock-llm:8001/v1
+  model: mock
+  mock: true
+
+api:
+  # Los modelos de embeddings, BM25 y reranker ocupan ~1,5 GB en memoria.
+  resources:
+    requests:
+      cpu: 250m
+      memory: 1536Mi
+    limits:
+      memory: 3Gi

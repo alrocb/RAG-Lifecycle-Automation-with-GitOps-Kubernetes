@@ -1,0 +1,47 @@
+{{- if .Values.llm.mock }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-mock-llm
+  labels:
+    app: rag-mock-llm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rag-mock-llm
+  template:
+    metadata:
+      labels:
+        app: rag-mock-llm
+    spec:
+      containers:
+        - name: mock-llm
+          image: "{{ .Values.images.mockLlm }}:{{ .Values.images.tag }}"
+          ports:
+            - name: http
+              containerPort: 8001
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-mock-llm
+  labels:
+    app: rag-mock-llm
+spec:
+  selector:
+    app: rag-mock-llm
+  ports:
+    - name: http
+      port: 8001
+      targetPort: http
+{{- end }}
