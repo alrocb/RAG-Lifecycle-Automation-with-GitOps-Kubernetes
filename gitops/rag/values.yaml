@@ -5,4 +5,4 @@ host: rag.13-223-128-114.sslip.io
 
 images:
   # Lo actualiza el CI tras publicar las imágenes de cada commit.
-  tag: latest
+  tag: 2318273c4a17d401b82d4ac6a8d7c0a4f8dc3cd0
