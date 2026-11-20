@@ -3,4 +3,4 @@
 
 images:
   # Lo actualiza el CI tras publicar las imágenes de cada commit.
-  tag: 3041d6612d4a585af246d13473b456c328cdabc4
+  tag: 0065f9ba4f58c17f7bf1cc67142b0cabd6bb9a7d
