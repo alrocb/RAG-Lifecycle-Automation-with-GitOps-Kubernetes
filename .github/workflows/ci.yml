@@ -43,8 +43,10 @@ jobs:
       - uses: azure/setup-helm@v4
         with:
           version: v3.22.1
-      - run: helm lint charts/rag -f gitops/rag/values.yaml
-      - run: helm template rag charts/rag -f gitops/rag/values.yaml > /dev/null
+      - run: helm lint charts/rag -f gitops/rag/values.yaml --set host=rag.example.sslip.io
+      - run: helm template rag charts/rag -f gitops/rag/values.yaml --set host=rag.example.sslip.io > /dev/null
+      - run: helm lint gitops/apps --set host=rag.example.sslip.io
+      - run: helm template apps gitops/apps --set host=rag.example.sslip.io > /dev/null
 
   # Solo se publican imágenes nuevas si cambia el código de las aplicaciones.
   changes:

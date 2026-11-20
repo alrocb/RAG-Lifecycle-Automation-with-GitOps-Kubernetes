@@ -1,0 +1,6 @@
+# Nombre público de la aplicación, rag.<ip con guiones>.sslip.io. Lo pasa Terraform al crear la
+# aplicación raíz, porque la IP cambia al recrear la infraestructura (en AWS Academy, cada sesión).
+host: ""
+
+repoURL: https://github.com/alrocb/RAG-Lifecycle-Automation-with-GitOps-Kubernetes.git
+revision: main

@@ -9,18 +9,21 @@ metadata:
 spec:
   project: default
   sources:
-    - repoURL: https://github.com/alrocb/RAG-Lifecycle-Automation-with-GitOps-Kubernetes.git
-      targetRevision: main
+    - repoURL: {{ .Values.repoURL }}
+      targetRevision: {{ .Values.revision }}
       path: charts/rag
       helm:
         valueFiles:
           - $repo/gitops/rag/values.yaml
+        # El nombre depende de la IP del entorno: lo recibe la aplicación raíz desde Terraform.
+        valuesObject:
+          host: {{ .Values.host | quote }}
     # Solo para que $repo apunte a este repositorio en valueFiles.
-    - repoURL: https://github.com/alrocb/RAG-Lifecycle-Automation-with-GitOps-Kubernetes.git
-      targetRevision: main
+    - repoURL: {{ .Values.repoURL }}
+      targetRevision: {{ .Values.revision }}
       ref: repo
-    - repoURL: https://github.com/alrocb/RAG-Lifecycle-Automation-with-GitOps-Kubernetes.git
-      targetRevision: main
+    - repoURL: {{ .Values.repoURL }}
+      targetRevision: {{ .Values.revision }}
       path: gitops/rag/secrets
   destination:
     server: https://kubernetes.default.svc

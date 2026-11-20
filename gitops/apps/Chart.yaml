@@ -1,0 +1,7 @@
+# "App of apps": genera las aplicaciones de Argo CD. La aplicación raíz que la despliega la crea
+# el arranque de la máquina (infra/cluster/install-k3s.sh.tftpl) y le pasa los valores del entorno.
+apiVersion: v2
+name: apps
+description: Aplicaciones de Argo CD del clúster
+type: application
+version: 0.1.0

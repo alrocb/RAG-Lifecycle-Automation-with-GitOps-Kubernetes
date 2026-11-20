@@ -6,7 +6,6 @@ output "public_ip" {
   value = aws_eip.node.public_ip
 }
 
-# Va en gitops/rag/values.yaml (host) si cambia la IP.
 output "app_host" {
   value = "rag.${local.ip_dashes}.sslip.io"
 }

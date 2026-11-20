@@ -68,6 +68,12 @@ spec:
     repoURL: ${repo_url}
     targetRevision: ${git_revision}
     path: gitops/apps
+    # Valores que dependen del entorno (la IP cambia al recrear la infraestructura).
+    helm:
+      valuesObject:
+        host: ${app_host}
+        repoURL: ${repo_url}
+        revision: ${git_revision}
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

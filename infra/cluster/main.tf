@@ -122,6 +122,7 @@ resource "aws_instance" "node" {
     sealed_secrets_param = var.sealed_secrets_param
     argocd_chart_version = var.argocd_chart_version
     argocd_host          = "argocd.${local.ip_dashes}.sslip.io"
+    app_host             = "rag.${local.ip_dashes}.sslip.io"
     repo_url             = var.repo_url
     git_revision         = var.git_revision
   })
