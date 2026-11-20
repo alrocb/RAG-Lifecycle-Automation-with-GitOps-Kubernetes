@@ -49,6 +49,7 @@ LLM simulado con 0,5 s de latencia en todas las medidas.
 | Configuración final (10×400), datos reales | 2,3–3,4 s por pregunta | Local | 06/11 | 8 preguntas de prueba |
 | Búsqueda híbrida (etapa) | ~23 ms por pregunta | Local | 06/11 | `/metrics` |
 | Configuración final (10×400), por HTTPS en la t3.large | 9,6–11,7 s por pregunta; media por etapa: búsqueda 0,04 s · **reordenación 9,70 s** · LLM simulado 0,46 s · total 10,20 s | AWS | 20/11 | 4 preguntas; diferencia de `/metrics` antes y después |
+| Reordenación sola, 10 frente a 5 candidatos (×400 caracteres) | 10: 8,2–12,4 s (mediana 9,8) · 5: 3,3–5,0 s (mediana 4,4). Misma primera fuente en 3 de 4 preguntas del temario; «¿Qué es Ansible?» pierde su única fuente con 5; las 2 fuera del temario, sin fuentes en ambos | AWS | 20/11 | 6 preguntas × 2 rondas en un pod aparte con la imagen de la API (`search` + `rerank_hits`) |
 
 ## Calidad de la recuperación (comprobaciones cualitativas)
 
@@ -76,6 +77,7 @@ LLM simulado con 0,5 s de latencia en todas las medidas.
 | Memoria usada en la t3.large con k3s recién instalado | ~800 MiB de 7,6 GiB | 06/11 |
 | Memoria usada con todo desplegado (Argo CD, cert-manager, Sealed Secrets, API con modelos, Qdrant con índice) | 3,8 de 7,6 GiB | 20/11 |
 | Memoria de la API con los modelos cargados, en el clúster | ~1,5 GiB | 20/11 |
+| Memoria de Argo CD (5 pods) | ~270 MiB: controlador 165, server 48, repo-server 32, applicationset 20, redis 6 | 20/11 |
 
 ## Infraestructura y despliegue
 

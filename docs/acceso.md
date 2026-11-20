@@ -38,6 +38,8 @@ terraform -chdir=infra/cluster output      # app_host y argocd_host
 
 ## Argo CD: `https://argocd.<ip>.sslip.io`
 
+Explicación completa (qué es, cómo funciona, qué guarda, cada botón): [argocd.md](argocd.md).
+
 **Para qué sirve.** Argo CD es el controlador GitOps: compara lo que hay en el clúster con lo que dice el repositorio de Git y lo corrige. Su web permite **ver** el estado de todo sin usar la línea de comandos. Fue uno de los motivos para elegirlo frente a Flux (capítulo 2 de la memoria).
 
 **Cómo entrar.**

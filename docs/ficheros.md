@@ -54,7 +54,7 @@ Qué contiene cada fichero, qué hace y por qué existe. Las decisiones de fondo
 | Fichero | Qué es y qué hace | Por qué existe |
 | --- | --- | --- |
 | `Chart.yaml` | Nombre y versión del chart | Requisito de Helm |
-| `values.yaml` | Valores por defecto: imágenes, recursos, LLM, ingesta | Un único sitio para ajustar el despliegue |
+| `values.yaml` | Valores por defecto: imágenes, recursos, LLM, ingesta y candidatos de la reordenación en el clúster (5, ADR-031) | Un único sitio para ajustar el despliegue |
 | `templates/api.yaml` | Deployment y Service de la API, con sondas de arranque (carga de modelos), de vida y de disponibilidad (`/readyz`) | La API no recibe tráfico hasta que puede responder |
 | `templates/qdrant.yaml` | StatefulSet y Service de Qdrant con un volumen persistente | El índice sobrevive a reinicios del pod |
 | `templates/mock-llm.yaml` | Deployment y Service del LLM simulado (solo si `llm.mock` es `true`) | Se puede quitar al usar un LLM real |
@@ -98,6 +98,7 @@ Qué contiene cada fichero, qué hace y por qué existe. Las decisiones de fondo
 | --- | --- |
 | `README.md` | Índice y convenciones |
 | `acceso.md` | Las direcciones web, cómo entrar y qué hacer en cada una |
+| `argocd.md` | Argo CD a fondo: qué es, cómo funciona, cómo se usa aquí y qué se puede hacer desde su web |
 | `operacion.md` | Procedimiento por sesión: levantar, actualizar, destruir |
 | `arquitectura.md` | Componentes y flujos con diagramas |
 | `decisiones.md` | Decisiones de diseño justificadas (ADR) |

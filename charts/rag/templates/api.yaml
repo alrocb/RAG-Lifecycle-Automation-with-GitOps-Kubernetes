@@ -27,6 +27,8 @@ spec:
               value: {{ .Values.llm.baseUrl | quote }}
             - name: LLM_MODEL
               value: {{ .Values.llm.model | quote }}
+            - name: CANDIDATES
+              value: {{ .Values.api.candidates | quote }}
             - name: API_KEY
               valueFrom:
                 secretKeyRef:

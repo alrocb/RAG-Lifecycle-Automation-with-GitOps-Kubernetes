@@ -5,6 +5,7 @@ Esta carpeta recoge todo lo que se ha hecho en el TFM, por qué se ha hecho así
 | Documento | Qué contiene | Para qué apartado de la memoria |
 | --- | --- | --- |
 | [acceso.md](acceso.md) | Qué es cada dirección web, cómo entrar y qué se puede hacer | 4.2, anexos |
+| [argocd.md](argocd.md) | Argo CD a fondo: qué es, cómo funciona, cómo se usa aquí y qué se puede hacer desde su web | 2 (estado del arte), 4.2 |
 | [ficheros.md](ficheros.md) | Qué contiene cada fichero del repositorio, qué hace y por qué existe | 4.2, anexos |
 | [arquitectura.md](arquitectura.md) | Componentes del sistema, cómo se relacionan y los flujos principales, con diagramas | 4.2 (OE2) |
 | [decisiones.md](decisiones.md) | Registro de decisiones de diseño (ADR): contexto, decisión, alternativas y justificación | 4.1.3, 4.2 |

@@ -83,7 +83,7 @@ Cada decisión sigue el formato habitual de los *Architecture Decision Records*:
 - **Decisión.** Reordenar solo 10 candidatos y solo sus primeros 400 caracteres. Descartar los que puntúan por debajo de −3 (~5 % de probabilidad de ser relevantes) y quedarse con hasta 5.
 - **Alternativas.** Quitar la reordenación; un modelo más pequeño (solo hay modelos en inglés de ese tamaño en fastembed).
 - **Justificación.** Medido: 9,9 s → 1,6 s con el mismo mejor resultado. El umbral hace que una pregunta fuera del temario no reciba fuentes falsas.
-- **Consecuencias.** Es configurable (`CANDIDATES`, `RERANK_MAX_CHARS`, `RERANK_MIN_SCORE`, `RERANK_MODEL=""` para desactivarla). En la t3.large (2 vCPU) será más lenta; es un buen ejemplo del equilibrio calidad–coste operativo para la evaluación.
+- **Consecuencias.** Es configurable (`CANDIDATES`, `RERANK_MAX_CHARS`, `RERANK_MIN_SCORE`, `RERANK_MODEL=""` para desactivarla). En la t3.large (2 vCPU) es mucho más lenta y allí se usan 5 candidatos (ADR-031); es un buen ejemplo del equilibrio calidad–coste operativo para la evaluación.
 
 ## ADR-007. Cabecera de contexto en cada fragmento
 
@@ -264,3 +264,12 @@ Cada decisión sigue el formato habitual de los *Architecture Decision Records*:
 - **Alternativas.** No exponerla y entrar con un túnel de SSM (`AWS-StartPortForwardingSession`), que exige instalar el plugin de Session Manager y abrir el túnel en cada sesión.
 - **Justificación.** Acceso directo desde el navegador, necesario para operar y para las capturas de la memoria, con el tráfico cifrado y una contraseña que no se reutiliza entre clústeres.
 - **Consecuencias.** El panel está expuesto a internet. El riesgo es aceptable para un entorno de un solo usuario y vida corta (en el lab, horas); en un entorno real se pondría detrás de una VPN o de un proveedor de identidad.
+
+## ADR-031. En el clúster se reordenan 5 candidatos en lugar de 10
+
+- **Contexto.** En la t3.large (2 vCPU), la reordenación de 10 candidatos tarda ~10 s por pregunta, el 95 % del tiempo de respuesta (en local, 1,6 s). Medido el 20/11 con 6 preguntas, dos veces cada una.
+- **Decisión.** El chart pasa `CANDIDATES=5` a la API (`api.candidates` en `charts/rag/values.yaml`). El código y el valor por defecto en local (10) no cambian.
+- **Alternativas.** Desactivar la reordenación (~0,5 s por pregunta, pero sin reordenado ni filtro de relevancia: una pregunta fuera del temario recibiría fuentes que no vienen a cuento); mantener 10 y documentarlo como limitación; una máquina con más CPU (fuera del límite del lab).
+- **Justificación.** La reordenación baja de 8,2–12,4 s a 3,3–5,0 s (mediana 9,8 → 4,4 s), sin cambiar la primera fuente en 3 de las 4 preguntas del temario y sin dar fuentes a las 2 preguntas fuera del temario. Se conserva el filtro de relevancia, que era lo más valioso de la reordenación.
+- **Consecuencias.** Llegan como mucho 5 fragmentos al LLM, y si el fragmento bueno está en las posiciones 6–10 de la búsqueda híbrida se pierde: le pasó a «¿Qué es Ansible?», que con 10 candidatos tenía una fuente (`tema4.pdf`, p. 22) y con 5 se queda sin ninguna. Es el precio de la latencia en esta máquina; con más CPU se volvería a 10 cambiando un valor. Al ser solo configuración, el cambio llega al clúster por Git y Argo CD, sin reconstruir la imagen.
+

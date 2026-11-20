@@ -43,6 +43,9 @@ ingest:
       memory: 4Gi
 
 api:
+  # Fragmentos que se reordenan por pregunta (en local, 10). En las 2 vCPU de la t3.large,
+  # 10 tardan ~10 s y 5 ~4,4 s (medido el 20/11); ver ADR-031.
+  candidates: 5
   # Los modelos de embeddings, BM25 y reranker ocupan ~1,5 GB en memoria.
   resources:
     requests:
