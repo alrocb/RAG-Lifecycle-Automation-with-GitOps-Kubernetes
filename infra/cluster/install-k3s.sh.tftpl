@@ -72,6 +72,8 @@ spec:
     helm:
       valuesObject:
         host: ${app_host}
+        materialsBucket: ${materials_bucket}
+        awsRegion: ${region}
         repoURL: ${repo_url}
         revision: ${git_revision}
   destination:

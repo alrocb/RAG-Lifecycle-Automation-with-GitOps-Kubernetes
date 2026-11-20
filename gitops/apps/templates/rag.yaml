@@ -18,6 +18,9 @@ spec:
         # El nombre depende de la IP del entorno: lo recibe la aplicación raíz desde Terraform.
         valuesObject:
           host: {{ .Values.host | quote }}
+          ingest:
+            bucket: {{ .Values.materialsBucket | quote }}
+            region: {{ .Values.awsRegion | quote }}
     # Solo para que $repo apunte a este repositorio en valueFiles.
     - repoURL: {{ .Values.repoURL }}
       targetRevision: {{ .Values.revision }}

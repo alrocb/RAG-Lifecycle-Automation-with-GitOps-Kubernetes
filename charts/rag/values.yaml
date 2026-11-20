@@ -25,6 +25,22 @@ llm:
   model: mock
   mock: true
 
+ingest:
+  # Bucket S3 privado con los materiales (lo pasa Terraform). Vacío = sin ingesta en el clúster.
+  bucket: ""
+  region: us-east-1
+  # Reindexación diaria a las 04:00 UTC; se puede lanzar a mano con
+  # kubectl -n rag create job --from=cronjob/rag-ingest rag-ingest-manual
+  schedule: "0 4 * * *"
+  suspend: false
+  # Mismos modelos que la API más spaCy; en CPU, la ingesta es la carga más pesada del sistema.
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      memory: 3Gi
+
 api:
   # Los modelos de embeddings, BM25 y reranker ocupan ~1,5 GB en memoria.
   resources:

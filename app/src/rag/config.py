@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     max_history: int = 6  # mensajes previos de la conversación que se envían al LLM
 
     data_dir: str = "data"
+    # Bucket S3 privado con los materiales; si se indica, la ingesta los descarga antes en data_dir.
+    materials_bucket: str | None = None
     names_file: str | None = None
 
 

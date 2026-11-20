@@ -1,6 +1,11 @@
-# Nombre público de la aplicación, rag.<ip con guiones>.sslip.io. Lo pasa Terraform al crear la
-# aplicación raíz, porque la IP cambia al recrear la infraestructura (en AWS Academy, cada sesión).
+# Valores que dependen del entorno. Los pasa Terraform al crear la aplicación raíz, porque cambian
+# al recrear la infraestructura (en AWS Academy, en cada sesión: cuenta nueva e IP nueva).
+
+# Nombre público de la aplicación, rag.<ip con guiones>.sslip.io.
 host: ""
+# Bucket S3 privado con los materiales (rag-tfm-materials-<cuenta>) y su región.
+materialsBucket: ""
+awsRegion: us-east-1
 
 repoURL: https://github.com/alrocb/RAG-Lifecycle-Automation-with-GitOps-Kubernetes.git
 revision: main

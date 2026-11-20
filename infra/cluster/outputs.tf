@@ -13,3 +13,7 @@ output "app_host" {
 output "argocd_host" {
   value = "argocd.${local.ip_dashes}.sslip.io"
 }
+
+output "materials_bucket" {
+  value = local.materials_bucket
+}

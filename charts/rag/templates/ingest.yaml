@@ -1,0 +1,46 @@
+{{- if .Values.ingest.bucket }}
+# Reindexación periódica: descarga los materiales de S3, construye una colección nueva y mueve
+# el alias. La API sigue respondiendo con la colección anterior mientras tanto.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: rag-ingest
+  labels:
+    app: rag-ingest
+spec:
+  schedule: {{ .Values.ingest.schedule | quote }}
+  suspend: {{ .Values.ingest.suspend }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: rag-ingest
+        spec:
+          {{- include "rag.ingestPod" (dict "root" . "args" (list)) | nindent 10 }}
+---
+# Primera carga de un clúster nuevo. Argo CD lo lanza en cada sincronización (hook), pero con
+# --if-missing solo indexa si no existe el índice; si existe, termina en segundos.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rag-ingest-inicial
+  labels:
+    app: rag-ingest
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  # Qdrant puede no estar listo aún en el primer intento.
+  backoffLimit: 4
+  template:
+    metadata:
+      labels:
+        app: rag-ingest
+    spec:
+      {{- include "rag.ingestPod" (dict "root" . "args" (list "--if-missing")) | nindent 6 }}
+{{- end }}

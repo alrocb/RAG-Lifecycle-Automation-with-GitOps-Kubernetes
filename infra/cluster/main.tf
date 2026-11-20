@@ -86,16 +86,35 @@ resource "aws_iam_role_policy_attachment" "ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+# La ingesta del clúster descarga los materiales con el rol de la máquina (solo lectura).
+resource "aws_iam_role_policy" "materials_read" {
+  count = length(aws_iam_role.node)
+  name  = "rag-tfm-materials-read"
+  role  = aws_iam_role.node[0].id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["s3:ListBucket", "s3:GetObject"]
+      Resource = ["arn:aws:s3:::${local.materials_bucket}", "arn:aws:s3:::${local.materials_bucket}/*"]
+    }]
+  })
+}
+
 resource "aws_iam_instance_profile" "node" {
   count = length(aws_iam_role.node)
   name  = "rag-tfm-node"
   role  = aws_iam_role.node[0].name
 }
 
+data "aws_caller_identity" "current" {}
+
 locals {
   instance_profile = var.instance_profile_name != null ? var.instance_profile_name : aws_iam_instance_profile.node[0].name
   # sslip.io resuelve <ip-con-guiones>.sslip.io a esa IP: DNS sin registrar dominio.
   ip_dashes = replace(aws_eip.node.public_ip, ".", "-")
+  # Lo crea infra/bootstrap.sh y lo llena infra/upload-materials.sh.
+  materials_bucket = "rag-tfm-materials-${data.aws_caller_identity.current.account_id}"
 }
 
 # --- Máquina virtual con k3s --------------------------------------------------
@@ -123,6 +142,7 @@ resource "aws_instance" "node" {
     argocd_chart_version = var.argocd_chart_version
     argocd_host          = "argocd.${local.ip_dashes}.sslip.io"
     app_host             = "rag.${local.ip_dashes}.sslip.io"
+    materials_bucket     = local.materials_bucket
     repo_url             = var.repo_url
     git_revision         = var.git_revision
   })
@@ -130,6 +150,9 @@ resource "aws_instance" "node" {
 
   metadata_options {
     http_tokens = "required" # IMDSv2
+    # Un salto más para que los pods (detrás de la red del clúster) obtengan las credenciales
+    # del rol de la máquina; con 1 solo llegan los procesos del propio host.
+    http_put_response_hop_limit = 2
   }
 
   root_block_device {
