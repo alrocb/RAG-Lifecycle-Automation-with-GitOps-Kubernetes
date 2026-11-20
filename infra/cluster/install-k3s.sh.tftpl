@@ -56,6 +56,9 @@ EOF
 
 # 3. Aplicación raíz (app of apps): Argo CD sincroniza a partir de aquí todo gitops/apps.
 until k3s kubectl get crd applications.argoproj.io >/dev/null 2>&1; do sleep 5; done
+# Si la aplicación raíz llega antes que el servidor de repositorios, su primera comparación falla
+# y Argo CD no la reintenta hasta el siguiente ciclo (3 min).
+until k3s kubectl -n argocd rollout status deploy/argocd-repo-server --timeout=10s >/dev/null 2>&1; do sleep 5; done
 k3s kubectl apply -f - <<'EOF'
 apiVersion: argoproj.io/v1alpha1
 kind: Application

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Prepara una cuenta de AWS (una vez por cuenta; en AWS Academy, una vez por sesión, porque cada
 # sesión da una cuenta nueva): los buckets S3 del estado de Terraform y de los materiales, y la
-# clave de Sealed Secrets. Es idempotente. Uso: infra/bootstrap.sh [región]
+# clave de Sealed Secrets. Es idempotente. Uso: bash infra/bootstrap.sh [región]
 # Imprime el nombre del bucket del estado (para terraform init).
 #
 # Es un script y no Terraform porque el estado no puede guardarse en un bucket que aún no existe,
@@ -36,7 +36,7 @@ private_bucket "rag-tfm-materials-$ACCOUNT"
 
 # La clave de Sealed Secrets también vive en la cuenta (SSM Parameter Store).
 if [ -f "$(dirname "$0")/../.secrets/sealed-secrets.key" ]; then
-  "$(dirname "$0")/sealed-secrets-key.sh" "$REGION" >&2
+  bash "$(dirname "$0")/sealed-secrets-key.sh" "$REGION" >&2
 fi
 
 echo "rag-tfm-tfstate-$ACCOUNT"

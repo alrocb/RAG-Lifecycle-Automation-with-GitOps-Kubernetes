@@ -2,7 +2,7 @@
 
 Procedimiento para levantar, usar y destruir el entorno. Está pensado para AWS Academy Learner Lab, donde **cada sesión da una cuenta de AWS nueva y vacía** (ver `proceso.md`, 20/11). En una cuenta propia, los pasos 2 y 3 se hacen una sola vez.
 
-Los comandos se ejecutan en Git Bash desde la raíz del repositorio.
+Los comandos se ejecutan en Git Bash desde la raíz del repositorio. Los scripts se lanzan siempre con `bash infra/<script>.sh`, así funcionan igual en Windows, Linux y macOS sin depender de permisos de ejecución.
 
 ## Requisitos del equipo
 
@@ -23,13 +23,13 @@ Los comandos se ejecutan en Git Bash desde la raíz del repositorio.
 2. **Preparar la cuenta** (bucket del estado y clave de Sealed Secrets en SSM):
 
    ```bash
-   BUCKET=$(infra/bootstrap.sh us-east-1)
+   BUCKET=$(bash infra/bootstrap.sh us-east-1)
    ```
 
    Crea también el bucket privado de materiales. Para llenarlo (y cada vez que cambien los materiales):
 
    ```bash
-   infra/upload-materials.sh        # sincroniza data/ con s3://rag-tfm-materials-<cuenta>
+   bash infra/upload-materials.sh        # sincroniza data/ con s3://rag-tfm-materials-<cuenta>
    ```
 
 3. **Apuntar Terraform al bucket de esta cuenta:**
@@ -50,22 +50,7 @@ Los comandos se ejecutan en Git Bash desde la raíz del repositorio.
 
 ## Acceso
 
-| Qué | Dónde |
-| --- | --- |
-| Aplicación | `https://<app_host>`; la API key está en `.secrets/api-key.txt` |
-| Argo CD | `https://<argocd_host>`; usuario `admin`; contraseña en el secreto `argocd-initial-admin-secret` (abajo) |
-| Comandos en la máquina | `aws ssm send-command` o `aws ssm start-session` (requiere el plugin de Session Manager) |
-
-Comando suelto en la máquina, sin plugin:
-
-```bash
-ID=$(terraform -chdir=infra/cluster output -raw instance_id)
-aws ssm send-command --instance-ids $ID --document-name AWS-RunShellScript \
-  --parameters 'commands=["k3s kubectl get applications -A"]' --query Command.CommandId --output text
-aws ssm get-command-invocation --command-id <id> --instance-id $ID --query StandardOutputContent --output text
-```
-
-Contraseña de Argo CD: el mismo comando con `k3s kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath={.data.password} | base64 -d`.
+Las direcciones web, cómo entrar (API key de la aplicación, contraseña de Argo CD) y cómo ejecutar comandos en la máquina están en [acceso.md](acceso.md).
 
 ## Desplegar un cambio
 
@@ -73,7 +58,7 @@ Solo hay que hacer push a `main`. El CI publica las imágenes si cambia `app/` o
 
 ## Actualizar la base de conocimiento
 
-1. Cambiar los ficheros en `data/` y ejecutar `infra/upload-materials.sh`.
+1. Cambiar los ficheros en `data/` y ejecutar `bash infra/upload-materials.sh`.
 2. Esperar a la reindexación diaria (04:00 UTC) o lanzarla ya:
 
    ```bash

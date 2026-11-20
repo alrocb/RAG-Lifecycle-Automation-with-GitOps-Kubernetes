@@ -24,6 +24,9 @@ Todas las cifras medidas hasta ahora, con su fecha, el entorno y el método. Son
 | Desglose | ~1,5 min lectura y anonimización; ~5,5 min vectores | Local | 06/11 | Marcas de tiempo del log |
 | Conversión de 12 PPT a PDF | ~2 min, incluida la instalación de LibreOffice | Local | 06/11 | `docker compose run --rm convert-ppt` |
 | Subida de los materiales a S3 (128 ficheros, 89 MB) | 26 s | Local → AWS | 20/11 | `infra/upload-materials.sh` |
+| Primera ingesta en el clúster (Job inicial) | ~21 min: descarga de S3 18 s · lectura y anonimización 4 min · vectores e índice ~16,5 min | AWS | 20/11 | Marcas de tiempo del log y nombre de la colección |
+| Uso de recursos de la ingesta | ~1 núcleo (950–1.000 m); memoria hasta 2,95 GiB | AWS | 20/11 | `kubectl top pods` cada 2–3 min |
+| Job inicial con índice ya existente (`--if-missing`) | Termina en segundos sin descargar ni reindexar | AWS | 20/11 | Log del Job |
 
 ## Anonimización
 
@@ -45,6 +48,7 @@ LLM simulado con 0,5 s de latencia en todas las medidas.
 | Reordenación de una pregunta (Packer), por configuración | 20×800: 9,86 s · 10×800: 3,19 s · 10×400: 1,59 s · 5×400: 0,75 s; mismo mejor resultado en todas | Local | 06/11 | Llamada directa al modelo en el contenedor |
 | Configuración final (10×400), datos reales | 2,3–3,4 s por pregunta | Local | 06/11 | 8 preguntas de prueba |
 | Búsqueda híbrida (etapa) | ~23 ms por pregunta | Local | 06/11 | `/metrics` |
+| Configuración final (10×400), por HTTPS en la t3.large | 9,6–11,7 s por pregunta; media por etapa: búsqueda 0,04 s · **reordenación 9,70 s** · LLM simulado 0,46 s · total 10,20 s | AWS | 20/11 | 4 preguntas; diferencia de `/metrics` antes y después |
 
 ## Calidad de la recuperación (comprobaciones cualitativas)
 
@@ -70,6 +74,8 @@ LLM simulado con 0,5 s de latencia en todas las medidas.
 | Memoria de la API con los modelos cargados | ~1,5 GiB | 02/11 |
 | Imagen `rag-app` | 2,13 GB; 2,53 GB con spaCy | 06/11 |
 | Memoria usada en la t3.large con k3s recién instalado | ~800 MiB de 7,6 GiB | 06/11 |
+| Memoria usada con todo desplegado (Argo CD, cert-manager, Sealed Secrets, API con modelos, Qdrant con índice) | 3,8 de 7,6 GiB | 20/11 |
+| Memoria de la API con los modelos cargados, en el clúster | ~1,5 GiB | 20/11 |
 
 ## Infraestructura y despliegue
 
@@ -89,6 +95,7 @@ LLM simulado con 0,5 s de latencia en todas las medidas.
 | Commit del bot → aplicación raíz sincronizada | 17 s | AWS | 20/11 | `creationTimestamp` y `operationState.finishedAt` de las aplicaciones |
 | Commit del bot → aplicación RAG sincronizada | 43 s | AWS | 20/11 | Ídem |
 | Commit del bot → certificados TLS emitidos | 1 min 45 s | AWS | 20/11 | `lastTransitionTime` de los `Certificate` |
+| `terraform apply` (reemplazo de la máquina) → aplicación respondiendo con índice | ~30 min (incluye ~21 min de primera ingesta y 3 min de un fallo transitorio ya corregido) | AWS | 20/11 | Horas del `apply`, de los logs y de la sonda `/readyz` |
 | Memoria usada con Argo CD, cert-manager, Sealed Secrets y la aplicación (sin índice) | 3,7 de 7,6 GiB | AWS | 20/11 | `free -h` |
 
 Primera sincronización tras el arranque: Argo CD aún no había sondeado; en régimen normal el sondeo es cada 3 minutos, así que el plazo de un cambio puede crecer hasta en 3 minutos. Se medirá en el escenario 1 de la evaluación.

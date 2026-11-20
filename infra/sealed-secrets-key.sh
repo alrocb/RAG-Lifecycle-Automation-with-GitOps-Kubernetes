@@ -2,7 +2,7 @@
 # Sube (una vez por cuenta) la clave de Sealed Secrets a SSM Parameter Store, de donde la lee el
 # arranque de la máquina. Con la misma clave en cada recreación del clúster, los SealedSecret
 # del repositorio siguen siendo válidos sin volver a cifrarlos.
-# Uso: infra/sealed-secrets-key.sh [región]
+# Uso: bash infra/sealed-secrets-key.sh [región]
 #
 # La clave se generó con:
 #   openssl req -x509 -nodes -newkey rsa:4096 -days 3650 -subj "/CN=sealed-secret/O=sealed-secret" \

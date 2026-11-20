@@ -1,6 +1,6 @@
 # Registro de decisiones de diseño (ADR)
 
-Cada decisión sigue el formato habitual de los *Architecture Decision Records*: contexto, decisión, alternativas consideradas, justificación y consecuencias. El criterio general es el de la sección 4.1.3 de la memoria: priorizar lo abierto, lo ligero y lo que se puede reproducir con código, y que cada pieza se pueda medir.
+Cada decisión sigue el formato habitual de los *Architecture Decision Records*: contexto, decisión, alternativas consideradas, justificación y consecuencias. El criterio general es el de la sección 4.1.3 de la memoria: priorizar lo abierto, lo ligero y lo que se puede reproducir con código, y que cada pieza se pueda medir. A eso se suma un principio de trabajo: **la solución más simple que cumpla el requisito**. Cada fichero, script o componente nuevo tiene que poder entenderse y explicarse en la memoria; no se añade nada por si acaso.
 
 | ADR | Decisión | Estado |
 | --- | --- | --- |
@@ -33,6 +33,7 @@ Cada decisión sigue el formato habitual de los *Architecture Decision Records*:
 | 027 | Ingesta en el clúster: CronJob y Job inicial con `--if-missing` | Aceptada |
 | 028 | Credenciales de la ingesta: rol de la máquina vía IMDSv2 | Aceptada |
 | 029 | La descarga de S3 la hace la propia ingesta | Aceptada |
+| 030 | Panel de Argo CD público con HTTPS y contraseña aleatoria | Aceptada |
 
 ---
 
@@ -255,3 +256,11 @@ Cada decisión sigue el formato habitual de los *Architecture Decision Records*:
 - **Alternativas.** Un `initContainer` con la imagen de la CLI de AWS (`aws s3 sync`).
 - **Justificación.** Con un `initContainer`, la descarga ocurriría siempre antes de poder comprobar si hace falta: cada sincronización de Argo CD bajaría 89 MB para nada. Además, se usa una sola imagen y la lógica queda cubierta por pruebas.
 - **Consecuencias.** boto3 se añade a la imagen (~15 MB).
+
+## ADR-030. Panel de Argo CD público con HTTPS y contraseña aleatoria
+
+- **Contexto.** La interfaz web de Argo CD es uno de los motivos por los que se eligió frente a Flux (capítulo 2): permite ver el estado de sincronización y las desviaciones. Hay que decidir cómo se accede a ella.
+- **Decisión.** Exponerla en `https://argocd.<ip>.sslip.io` con certificado de Let's Encrypt, usuario `admin` y la contraseña aleatoria de 16 caracteres que Argo CD genera en cada clúster. `infra/argocd-password.sh` la muestra (vía SSM).
+- **Alternativas.** No exponerla y entrar con un túnel de SSM (`AWS-StartPortForwardingSession`), que exige instalar el plugin de Session Manager y abrir el túnel en cada sesión.
+- **Justificación.** Acceso directo desde el navegador, necesario para operar y para las capturas de la memoria, con el tráfico cifrado y una contraseña que no se reutiliza entre clústeres.
+- **Consecuencias.** El panel está expuesto a internet. El riesgo es aceptable para un entorno de un solo usuario y vida corta (en el lab, horas); en un entorno real se pondría detrás de una VPN o de un proveedor de identidad.

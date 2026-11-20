@@ -34,12 +34,13 @@ ingest:
   schedule: "0 4 * * *"
   suspend: false
   # Mismos modelos que la API más spaCy; en CPU, la ingesta es la carga más pesada del sistema.
+  # Pico medido en la t3.large: 2,95 GiB (20/11); 4 GiB deja margen sin agotar la máquina.
   resources:
     requests:
       cpu: 500m
       memory: 1Gi
     limits:
-      memory: 3Gi
+      memory: 4Gi
 
 api:
   # Los modelos de embeddings, BM25 y reranker ocupan ~1,5 GB en memoria.

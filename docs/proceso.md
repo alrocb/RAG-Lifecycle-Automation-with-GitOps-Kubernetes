@@ -10,7 +10,7 @@ Registro cronológico de lo que se ha hecho en cada fase de la metodología (sec
 | 2. Aplicación RAG base | Hecha | 02/11 – 06/11/2026 | `873b2fb`, `cecf09d` |
 | 3. Infraestructura como código | Hecha | 06/11/2026 | `cecf09d` |
 | 4. Integración continua y GitOps | Hecha y desplegada | 13/11 – 20/11/2026 | `2318273` (17/11), `3041d66` (20/11) |
-| 5. Actualización de la base de conocimiento | Pendiente (la reindexación sin corte ya existe) | — | — |
+| 5. Actualización de la base de conocimiento | Hecha y desplegada | 20/11/2026 | `4f88da8` |
 | 6. Observabilidad | Pendiente (la API ya expone métricas) | — | — |
 | 7. Evaluación | Pendiente | — | — |
 
@@ -154,4 +154,22 @@ La reindexación sin corte ya existía desde la Fase 2 (ADR-004). Faltaba que se
 
 Como cambia el script de arranque, el siguiente `terraform apply` **reemplaza la máquina**: el clúster se reconstruye desde cero, otra prueba de reproducibilidad.
 
-*Continúa: despliegue y primera ingesta en el clúster.*
+6. **Revisión de la documentación a petición del usuario**, antes de desplegar:
+   - `docs/ficheros.md`: qué contiene cada fichero, qué hace y por qué existe.
+   - `docs/acceso.md`: qué son las dos direcciones web, cómo entrar y qué se puede hacer en cada una.
+   - `infra/argocd-password.sh`: muestra la contraseña de Argo CD (se genera en cada clúster); comprobado que con ella el login responde 200.
+   - ADR-030 (exponer Argo CD) y el principio de simplicidad en `decisiones.md`.
+   - Los scripts se documentan como `bash infra/<script>.sh` y `bootstrap.sh` llama al otro script con `bash`. Así no dependen del permiso de ejecución, que en Windows no existe y que Git solo guarda si se marca con `git add --chmod=+x`.
+   - El README principal se acorta y remite a `docs/`, para no duplicar instrucciones que se desactualicen.
+
+### 20/11/2026: despliegue y primera ingesta en el clúster
+
+1. `terraform apply` del plan revisado: reemplaza solo la máquina (cambió su script de arranque) y conserva la IP; 55 s.
+2. **El arranque volvió a mostrar el fallo transitorio de la Fase 4**: la aplicación raíz se creó antes de que el servidor de repositorios de Argo CD estuviera listo, y Argo CD no la reintentó hasta su siguiente ciclo (3 min). Esta vez no hubo un push que lo destapara antes, así que se vio el retraso completo. **Solución (una línea):** el script espera a que ese servidor esté listo antes de crear la aplicación raíz. Se aplicará en la próxima recreación del clúster.
+3. **Primera ingesta en el clúster, sin intervención**: el Job inicial obtuvo credenciales del rol `LabRole` a través de IMDSv2 (confirma ADR-028), descargó 128 ficheros en 18 s, leyó y anonimizó 7.116 fragmentos en 4 min y construyó el índice en ~16,5 min más. Total ~21 min, frente a ~7 min en local: la máquina tiene 2 vCPU y la ingesta usó ~1 núcleo.
+4. **La API pasó a estar disponible sola** al existir el alias, y la web respondió por HTTPS. Una sincronización posterior volvió a lanzar el Job inicial, que detectó el índice y terminó en segundos (confirma ADR-027).
+5. **Memoria**: la ingesta llegó a 2,95 GiB con un límite de 3 GiB. Se sube el límite a 4 GiB (la máquina tenía 3,8 GiB libres).
+6. **Prueba de punta a punta por HTTPS**: sin API key, 401; con ella, respuestas con las fuentes correctas (p. ej. «¿Qué es Packer?» → la clase de Packer, puntuación 2,19).
+7. **Hallazgo: la reordenación en la t3.large tarda 9,7 s de media** (1,6 s en local), el 95 % de los 10,2 s por pregunta. Es el compromiso calidad–coste del ADR-006, que en 2 vCPU pesa mucho más. Pendiente de decidir con el usuario.
+
+**Del `terraform apply` a la aplicación respondiendo por HTTPS con el índice construido: ~30 min**, de los que ~21 son la primera ingesta y 3 el fallo transitorio ya corregido.

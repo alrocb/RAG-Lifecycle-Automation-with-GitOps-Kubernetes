@@ -1,7 +1,7 @@
 #!/bin/bash
 # Sube los materiales de data/ al bucket privado de la cuenta. Es la forma de actualizar la base de
 # conocimiento: la siguiente ejecución de la ingesta (programada o lanzada a mano) los reindexa.
-# Uso: infra/upload-materials.sh [carpeta]   (por defecto, data/)
+# Uso: bash infra/upload-materials.sh [carpeta]   (por defecto, data/)
 set -euo pipefail
 
 SRC="${1:-$(dirname "$0")/../data}"
